@@ -1,0 +1,12 @@
+#!/bin/bash
+
+BAT0='/sys/class/power_supply/BAT0'
+BAT_CAPACITY=`cat ${BAT0}/capacity`
+BAT_STATUS=`cat ${BAT0}/status`
+
+case ${BAT_STATUS} in
+    Charging    ) echo "+${BAT_CAPACITY}%" ;;
+    Discharging ) echo "-${BAT_CAPACITY}%" ;;
+    *           ) echo "${BAT_CAPACITY}%"  ;;
+esac
+
