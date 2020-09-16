@@ -1,0 +1,180 @@
+#!/bin/bash
+#---------------------------------------------------------------------------#
+# HEAD                                                                      #
+#---------------------------------------------------------------------------#
+#                                                                           #
+# author:           karim koerber                                           #
+# license:          GPL v. 3                                                #
+# tabstop:          4                                                       #
+# dependencies:     GNU core utils, bash, awk                               #
+# distribution:     should run on all linux distributions                   #
+#                                                                           #
+# info:                                                                     #
+#   Creates a list of processes, which is sorted according to their         #
+#   virtual memory consumption                                              #
+#                                                                           #
+#---------------------------------------------------------------------------#
+
+
+#---------------------------------------------------------------------------#
+# ENV                                                                       #
+#---------------------------------------------------------------------------#
+## SET: secure $PATH
+PATH='/usr/local/bin:/bin:/usr/bin'
+## UNSET: aliases
+unalias -a
+## UNSET: command path hash
+hash -r
+## UNSET: core dumps by setting hard limit to 0
+ulimit -H -c 0 --
+## SET: secure $IFS
+IFS=$' \t\n'  
+## SET: secure umask
+umask 002
+
+
+
+#---------------------------------------------------------------------------#
+# GLOBALS                                                                   #
+#---------------------------------------------------------------------------#
+SCRIPT_NAME=$(basename $0 .sh)
+
+ERR_FILE=1
+ERR_UNKNOWN=255
+
+OPT_LINES=0
+OPT_HEADDER=1
+OPT_VERBOSE=0
+
+
+
+#---------------------------------------------------------------------------#
+# FUNCTIONS                                                                 #
+#---------------------------------------------------------------------------#
+usage() {
+    printf '%s\n' "Creates a list of processes, which is sorted"\
+                  "according to their virtual memory usage"\
+                  ""\
+                  "usage: ${SCRIPT_NAME} [opt] <arg>"\
+                  ''\
+                  'opts:'\
+		          '   [-l] <0|n>'\
+		          '      number of output lines'\
+                  '      n(lines), 0(all lines, default)'\
+                  ''\
+                  '   [-s] <k|m|g|'\
+                  '      specifie size of mem an vmem'\
+	  	          '      k(kilo, default) m(mega), g(giga)'\
+                  ''\
+                  '   [-n]'\
+                  '      no headder'\
+                  ''\
+                  '   [-v]'\
+                  '      verbose output'\
+                  ''\
+                  'example:'\
+                  '     show 10 processes sorted by virtual memory'\
+                  '     consumption in megabyte'\
+                  '     ./vmemtop.sh -l 10 -sm'\
+                  '' ;}
+
+
+
+options() {
+    while getopts ":l:s:nhv" opt ;do :
+        case ${opt} in
+            l  ) OPT_LINES=${OPTARG} ;;
+            s  ) OPT_SIZE=${OPTARG} ;;
+            n  ) OPT_HEADDER=0 ;;
+            v  ) OPT_VERBOSE=1 ;;
+            h  ) usage ;;
+            *? ) usage ;exit ${ERR_UNKNOWN} ;;
+        esac ;done ;}
+
+
+        
+file_temp() {
+    FILE_TEMP="/tmp/${SCRIPT_NAME}.txt"
+
+    if [ ! -f "${FILE_TEMP}" ] ;then
+        if ! touch ${FILE_TEMP} ;then
+            _log_err 'could not crate file!' ${FILE_TEMP}
+            exit ${ERR_FILE} ;fi ;fi
+
+    if [ ! -r "${FILE_TEMP}" ] ;then
+             _log_err 'could not read file!' ${FILE_TEMP}
+             exit ${ERR_FILE} ;fi ;}
+
+
+             
+list_ps_vmem() {
+    if [ "$OPT_LINES" != 0 ] ;then
+	    CMD_PS="ps -eo vsize,rss,pid,cmd"
+        ps -eo vsize,rss,pid,cmd |sort -n |tail -n ${OPT_LINES} > ${FILE_TEMP}
+
+    else
+        ps -eo vsize,rss,pid,cmd |sort -n > ${FILE_TEMP} ;fi
+
+    grep -v ']' $FILE_TEMP > ${FILE_TEMP}.
+    mv ${FILE_TEMP}. ${FILE_TEMP} ;}	   
+
+
+
+convert_size() {
+    case $2 in
+        k|K ) SIZE_OP=1 ;;
+        m|M ) SIZE_OP=1024 ;;
+        g|G ) SIZE_OP=1048576 ;;
+        ?*  ) SIZE_OP=1 ;;
+    esac
+
+    if command -v bc &> /dev/null ;then
+        echo "scale=2; $1 / $SIZE_OP" |bc -l
+    else
+        echo $(( $1 / SIZE_OP )) ;fi ;}
+
+
+
+get_collumn_size() {
+    C1=$((`awk '{print $1}' <<< $(tail -n1 ${FILE_TEMP}) |wc -c` + 2))
+    C2=$((`awk '{print $2}' <<< $(tail -n1 ${FILE_TEMP}) |wc -c` + 2)) ;}
+
+
+
+headder(){
+    if [ ${OPT_HEADDER} = 1 ] ;then
+        printf "%-${C1}s %-${C2}s %-6s %s \n"\
+               'vmem' 'mem' 'pid' 'app'\
+               '---------------------------------' ;fi ;}
+
+
+        
+output() {
+    while read -r ;do
+        VMEM=`awk '{print $1}' <<< $REPLY`
+        MEM=`awk '{print $2}' <<< $REPLY`
+        PID=`awk '{print $3}' <<< $REPLY`
+        if [ "$OPT_VERBOSE" = 1 ] ;then
+            APP=`awk '{print $4}' <<< $REPLY`
+        else
+            APP="$(basename $(awk '{print $4}' <<< $REPLY))" ;fi
+
+        if [ -n "${OPT_SIZE}" ] ;then
+            VMEM=`convert_size ${VMEM} ${OPT_SIZE}`
+            MEM=`convert_size ${MEM} ${OPT_SIZE}` ;fi
+
+
+        printf "%-${C1}s %-${C2}s %-6s %s \n"\
+               "${VMEM}" "${MEM}" "${PID}" "${APP}" ;done < ${FILE_TEMP} ;}
+
+
+
+#---------------------------------------------------------------------------#
+# MAIN                                                                      #
+#---------------------------------------------------------------------------#
+options $*
+file_temp
+list_ps_vmem
+get_collumn_size
+headder
+output
