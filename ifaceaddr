@@ -4,7 +4,7 @@
 # but most of the time, they are to verbose ;)
 
 
-IFACES=`cat /proc/net/dev |awk '{print $1}' |grep ':' |cut -d ':' -f 1`
+IFACES=`awk '{print $1}' < /proc/net/dev |grep ':' |cut -d ':' -f 1`
 
 for iface in $IFACES ;do
     IP4_ARRD=
