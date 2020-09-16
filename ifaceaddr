@@ -12,7 +12,7 @@ for iface in $IFACES ;do
 
     REPEAT_IFACE="$iface"
 
-    if echo ${IP4_ADDR} |grep -v '.' ;then
+    if echo ${IP4_ADDR} |grep -q '.' ;then
         for addr in $IP4_ADDR ;do
             printf "%-15s %s\n" "$REPEAT_IFACE" "$addr" 
             REPEAT_IFACE= ;done ;fi
