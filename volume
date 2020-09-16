@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# info:
+#   set vo`lume 
+#
+# usage:
+#   ./volume <+|-|m(mute)|1-99(%)>
+
+## [ + ] increase volume +5%
+if [ "$1" = '+' ] ;then
+	amixer -D pulse set 'Master' 5%+ ;fi
+
+## [ - ] decrease volume -5%
+if [ "$1" = '-' ] ;then
+	amixer -D pulse set 'Master' 5%- ;fi
+
+## [ m ] mute / demute volume
+if [ "$1" = 'm' ] ;then
+	amixer -D pulse set 'Master' 0% ;fi
+
+## [ 0-100 ] set volume to n%
+if printf "%i" "$1" &> /dev/zero ;then
+	if [ "$1" -ge 0 -a "$1" -le 100 ] ;then
+		amixer -D pulse set Master ${1}% 
+		fi ;fi
+
