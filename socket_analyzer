@@ -1,0 +1,95 @@
+#!/bin/bash
+#
+# info:
+#   scan for open ports and show its pid and process name
+#
+# usage:
+#   scan all ports
+#   ./socket_analyzer 
+#
+#   scan specific ports
+#   ./socket_analyzer -p 22,80,443,8080
+
+
+#-----------------------------------------------------------------------------#
+# GLOBALS                                                                     #
+#-----------------------------------------------------------------------------#
+PROG_NAME=$(basename $0, sh)
+VERSION='0.1'
+
+
+#-----------------------------------------------------------------------------#
+# FUNC                                                                        #
+#-----------------------------------------------------------------------------#
+init(){
+    # chk perm
+    if [ "`whoami`" != 'root' ] ;then
+        echo "err: you are not root! ( $USER )"
+        exit 1 ;fi
+
+    for bin in $* ;do
+        if [ -z "`whereis $bin`" ] ;then
+            echo "err: package is not installed! ( $bin )"
+            exit 1 ;fi ;done ;}
+
+
+usage(){
+    printf '%s\n' "$PROG_NAME $VERSION"\
+                  ''\
+                  '? | -h'\
+                  '   print help'\
+                  ''\
+                  '-p <arg>'\
+                  '   Define a port nr or range'\
+                  '   22 | 22,23 | 22,23-42' ;}
+
+
+get_args() {
+    OPT_VERBOSE=
+    OPT_PORT=
+
+    while getopts ":p:hv" opt ;do :
+        case ${opt} in
+            v  ) OPT_VERBOSE=1      ;;
+            p  ) OPT_PORT=${OPTARG} ;;
+            h|?) usage ;exit 254    ;;
+        esac ;done
+
+    if [ -z "$OPT_PORT" ] ;then
+        OPT_PORT='1-65353' ;fi ;}
+
+
+sock_list(){
+    if ! nmap localhost -T 5 -p ${1} |grep open |awk '{print $1}' ;then
+        exit 1 ;fi ;}
+
+
+get_port_nr(){
+    cut -d '/' -f 1 <<< "$1" ;} 
+
+
+get_ps_nr(){
+    fuser $1 2> /dev/zero |awk '{print $1}' ;}
+
+
+get_ps_bin(){
+    ps -p $1 |grep $1 |awk '{print $4}' ;}
+
+
+main(){
+    printf "%-6s %-6s %s \n" 'port' 'pid' 'bin'\
+                             '------------------'
+    for socket in `sock_list $1` ;do
+        PORT_NR=`get_port_nr $socket`
+        PS_NR=`get_ps_nr $socket`
+        PS_BIN=`get_ps_bin $PS_NR`
+        printf "%-6s %-6s %s \n" "$PORT_NR" "$PS_NR" "$PS_BIN" '' ;done ;}
+
+
+        
+#-----------------------------------------------------------------------------#
+# MAIN                                                                        #
+#-----------------------------------------------------------------------------#
+init nmap fuser    
+get_args $*                       
+main ${OPT_PORT}           
