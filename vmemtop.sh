@@ -109,7 +109,6 @@ file_temp() {
              
 list_ps_vmem() {
     if [ "$OPT_LINES" != 0 ] ;then
-	    CMD_PS="ps -eo vsize,rss,pid,cmd"
         ps -eo vsize,rss,pid,cmd |sort -n |tail -n ${OPT_LINES} > ${FILE_TEMP}
 
     else
