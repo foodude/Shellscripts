@@ -1,26 +1,37 @@
 #!/bin/bash
-
-# info:
-#   set vo`lume 
 #
-# usage:
-#   ./volume <+|-|m(mute)|1-99(%)>
+# INFO:
+#   set volume in alsamixer with pulse audio
+#   for ubuntu 18.04
+# 
+# USAGE:
+#   +       increase 5%
+#   -       decrease 5%
+#   0-100   set to value
+#   m       mute / umnute
 
-## [ + ] increase volume +5%
-if [ "$1" = '+' ] ;then
-	amixer -D pulse set 'Master' 5%+ ;fi
+case $1 in
+    + ) PARAM='5%+' ;;
 
-## [ - ] decrease volume -5%
-if [ "$1" = '-' ] ;then
-	amixer -D pulse set 'Master' 5%- ;fi
+    - ) PARAM='5%-' ;;
 
-## [ m ] mute / demute volume
-if [ "$1" = 'm' ] ;then
-	amixer -D pulse set 'Master' 0% ;fi
+    m ) VOLUME=`awk -F"[][]" '/dB/ { print $2 }' <(amixer sget Master)`
+        echo "VOLUME = $VOLUME"
+        if [ "$VOLUME" != '0%' ] ;then
+            echo "$VOLUME" > /tmp/volume.txt
+            PARAM='0%' ;fi
 
-## [ 0-100 ] set volume to n%
-if printf "%i" "$1" &> /dev/zero ;then
-	if [ "$1" -ge 0 -a "$1" -le 100 ] ;then
-		amixer -D pulse set Master ${1}% 
-		fi ;fi
+        if [ "$VOLUME" = '0%' ] ;then
+            if [ -f "/tmp/volume.txt" ] ;then
+                PARAM=`cat /tmp/volume.txt`
+            else
+                PARAM='75%' ;fi ;fi ;;
 
+    * ) if printf '%i' "${1}" &> /dev/zero ;then
+            if [ "$1" -le 100 ] ;then
+                PARAM="${1}%" ;fi ;fi ;;
+esac
+
+if [ -n "$PARAM" ] ;then
+    amixer -D pulse set Master $PARAM ;fi
+ 
