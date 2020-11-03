@@ -142,9 +142,17 @@ get_collumn_size() {
 
 headder(){
     if [ ${OPT_HEADDER} = 1 ] ;then
+        case $OPT_SIZE in
+            k|K ) SIZE='kb' ;;
+            m|M ) SIZE='mb' ;;
+            g|G ) SIZE='gb' ;;
+            ?*  ) SIZE='kb' ;;
+        esac
+        echo "SIZE = $SIZE SIZE_OP = $SIZE_OP"
+
         printf "%-${C1}s %-${C2}s %-6s %s \n"\
-               'vmem' 'mem' 'pid' 'app'\
-               '---------------------------------' ;fi ;}
+            "vmem ($SIZE)" "mem ($SIZE)" 'pid' 'app'\
+            '---------------------------------' ;fi ;}
 
 
         
