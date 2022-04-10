@@ -39,28 +39,34 @@ usage(){
                   '? | -h'\
                   '   print help'\
                   ''\
+                  '-a <ip4_address|ip6_address>'\
+                  '   Define Network address'\
+                  '   Default: localhost '\
+                  ''\
                   '-p <arg>'\
                   '   Define a port nr or range'\
-                  '   22 | 22,23 | 22,23-42' ;}
+                  '   22 | 22,23 | 22,23-42'\
+                  '   Default: 1-65353'\
+                  '' ;}
 
 
 get_args() {
     OPT_VERBOSE=
-    OPT_PORT=
+    OPT_PORT='1-65353'
+    OPT_ADDR='localhost'
 
-    while getopts ":p:hv" opt ;do :
+    while getopts ":a:p:hv" opt ;do :
         case ${opt} in
             v  ) OPT_VERBOSE=1      ;;
+            a  ) OPT_ADDR=${OPTARG} ;;
             p  ) OPT_PORT=${OPTARG} ;;
             h|?) usage ;exit 254    ;;
-        esac ;done
+        esac ;done ;}
 
-    if [ -z "$OPT_PORT" ] ;then
-        OPT_PORT='1-65353' ;fi ;}
 
 
 sock_list(){
-    if ! nmap localhost -T 5 -p ${1} |grep open |awk '{print $1}' ;then
+    if ! nmap ${OPT_ADDR} -T 5 -p ${1} |grep open |awk '{print $1}' ;then
         exit 1 ;fi ;}
 
 
