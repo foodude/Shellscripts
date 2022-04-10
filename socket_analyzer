@@ -65,7 +65,7 @@ get_args() {
 
 
 
-sock_list(){
+port_list(){
     if ! nmap ${OPT_ADDR} -T 5 -p ${1} |grep open |awk '{print $1}' ;then
         exit 1 ;fi ;}
 
@@ -85,9 +85,9 @@ get_ps_bin(){
 main(){
     printf "%-6s %-6s %s \n" 'port' 'pid' 'bin'\
                              '------------------'
-    for socket in `sock_list $1` ;do
-        PORT_NR=`get_port_nr $socket`
-        PS_NR=`get_ps_nr $socket`
+    for port in `port_list $1` ;do
+        PORT_NR=`get_port_nr $port`
+        PS_NR=`get_ps_nr $port`
         PS_BIN=`get_ps_bin $PS_NR`
         printf "%-6s %-6s %s \n" "$PORT_NR" "$PS_NR" "$PS_BIN" '' ;done ;}
 
